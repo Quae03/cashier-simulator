@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Change trainer</title>
+<style>
+:root{--bg:#e8edee;--surface:#f7f9f9;--text:#15232b;--muted:#566872;--line:#c3cfd3;--accent:#0f766e;--bad:#b42318;--good:#1a7f4b;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#11181c;--surface:#1a252b;--text:#e6eef0;--muted:#97a9b1;--line:#2d3d45;--accent:#2dd4bf;--bad:#ff8a80;--good:#6ee7a0}}
+:root[data-theme="dark"]{--bg:#11181c;--surface:#1a252b;--text:#e6eef0;--muted:#97a9b1;--line:#2d3d45;--accent:#2dd4bf;--bad:#ff8a80;--good:#6ee7a0}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.45 "Trebuchet MS","Segoe UI",system-ui,sans-serif}
+main{max-width:560px;margin:0 auto;padding:16px}
+h1{font-size:1.4rem;margin:0 0 4px}
+p{margin:0 0 12px;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:12px}
+.row{display:flex;flex-wrap:wrap;gap:8px}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--text);border-radius:10px;padding:10px 14px;min-height:44px}
+button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+button:disabled{opacity:.45;cursor:default}
+button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.primary{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700}
+.lcd{background:#1c3a33;color:#b8f2cb;border-radius:12px;padding:14px 16px;font-family:ui-monospace,"Courier New",monospace;margin-bottom:12px}
+.lcd div{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.lcd .big{font-size:1.9rem;font-weight:700}
+.lcd small{color:#86c9a0;display:block;text-align:right;font-size:.8rem;margin-bottom:6px;min-height:1.2em}
+.lcd .lbl{font-size:.85rem;color:#86c9a0}
+.bar{height:10px;background:var(--line);border-radius:6px;overflow:hidden;margin-bottom:12px}
+.bar i{display:block;height:100%;width:100%;background:var(--accent);transition:width .1s linear}
+.hd{display:flex;justify-content:space-between;color:var(--muted);margin-bottom:8px;font-size:.95rem}
+.pad{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:8px;margin-bottom:12px}
+.pad button{min-height:52px;font-weight:700;border:0}
+.n10{background:#2f7d4f;color:#fff}.n20{background:#8a5a2b;color:#fff}.n50{background:#b53a3a;color:#fff}
+.n100{background:#2f5fa8;color:#fff}.n200{background:#e0852f;color:#1b1206}
+.cs{background:#cfd5d9;color:#1d2a30;border-radius:26px}.cg{background:#d4ae4a;color:#241a05;border-radius:26px}
+.fb{white-space:pre-line;min-height:1.4em}
+.ok{color:var(--good);font-weight:700}.no{color:var(--bad);font-weight:700}
+label{display:inline-flex;gap:8px;align-items:center;margin:10px 0}
+.lbl2{color:var(--muted);font-size:.9rem;margin-bottom:8px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{min-width:44px;height:30px;padding:0 8px;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;border-radius:15px}
+.chip.nn{min-width:64px;height:36px;border-radius:6px}
+input[type="text"],#amt{font:inherit;flex:1;min-width:0;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--text);min-height:44px}
+</style>
+</head>
+<body>
+<main>
+<section id="start" class="card">
+<h1>Change trainer</h1>
+<p>Work out the change and tap the notes and coins to hand it back. Ten customers per shift.</p>
+<div class="row" id="levels" role="group" aria-label="Difficulty">
+<button data-l="0">Easy</button><button data-l="1" class="on">Normal</button><button data-l="2">Hard</button>
+</div>
+<p id="ldesc" style="margin-top:10px"></p>
+<label><input type="checkbox" id="timed" checked> Timer per customer (25 seconds, or 40 when counting the cash)</label><br>
+<label><input type="checkbox" id="count" checked> Count the cash yourself (the amount handed over is hidden)</label><br>
+<button class="primary" id="go">Start shift</button>
+</section>
+
+<section id="play" hidden>
+<div class="hd"><span id="count"></span><span id="score"></span></div>
+<div class="bar" id="barwrap"><i id="bar"></i></div>
+<div class="lcd">
+<div><span class="lbl">Total due</span><span class="big" id="total"></span></div>
+<div style="margin-top:8px"><span class="lbl">Customer pays</span><span class="big" id="paid"></span></div>
+<small id="paidd"></small>
+<div><span class="lbl">Change given</span><span class="big" id="given"></span></div>
+<small id="givend"></small>
+</div>
+<div class="card" id="handcard" hidden>
+<div class="lbl2">Customer hands you</div>
+<div class="chips" id="hand"></div>
+<div class="row" id="recv" hidden style="margin-top:10px;flex-wrap:nowrap">
+<input id="amt" inputmode="decimal" placeholder="Amount received, e.g. 600.25" aria-label="Amount received" autocomplete="off">
+<button class="primary" id="chk">Check</button>
+</div>
+<div id="recvfb" style="margin-top:6px;min-height:1.3em"></div>
+</div>
+<div class="pad" id="notes"></div>
+<div class="pad" id="coins"></div>
+<div class="row">
+<button id="undo">Undo</button><button id="clear">Clear</button>
+<button class="primary" id="submit" style="flex:1">Give change</button>
+</div>
+<div class="card fb" id="fb" hidden style="margin-top:12px"></div>
+<button class="primary" id="next" hidden style="margin-top:4px;width:100%">Next customer</button>
+<div class="row" style="margin-top:16px">
+<button id="restart" style="flex:1">Restart shift</button><button id="menu" style="flex:1">Change settings</button>
+</div>
+</section>
+
+<section id="end" class="card" hidden>
+<h1>Shift over</h1>
+<p id="sum" style="color:var(--text);white-space:pre-line"></p>
+<button class="primary" id="again">New shift</button>
+</section>
+</main>
+<script>
+const NOTES=[20000,10000,5000,2000,1000],COINS=[500,200,100,50,20,10,5],DENOMS=[...NOTES,...COINS];
+const fm=c=>(c<0?'-':'')+'R'+Math.floor(Math.abs(c)/100)+'.'+String(Math.abs(c)%100).padStart(2,'0');
+const lbl=d=>d>=100?'R'+d/100:d+'c';
+const sum=b=>Object.entries(b).reduce((s,[d,n])=>s+d*n,0);
+const desc=b=>{const p=DENOMS.filter(d=>b[d]).map(d=>lbl(d)+' \u00d7'+b[d]);return p.length?p.join(', '):'nothing yet'};
+const greedy=(a,ds)=>{const r={};for(const d of ds){const n=Math.floor(a/d);if(n){r[d]=n;a-=n*d}}return r};
+const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const snap=(v,s)=>Math.round(v/s)*s;
+function tender(total,lv){
+  const steps=[1000,2000,5000,10000],step=steps[rnd(0,Math.min(lv+1,3))];
+  const r=greedy((Math.floor(total/step)+1)*step,NOTES);
+  if(lv>=2&&total%100&&Math.random()<.5){const e=greedy(total%100,COINS);for(const d in e)r[d]=(r[d]||0)+e[d]}
+  return r;
+}
+function transaction(lv){
+  const R=[[500,5000],[1000,30000],[1500,90000]][lv];
+  const total=snap(rnd(R[0],R[1]),lv===0?50:5),t=tender(total,lv);
+  return {total,tendered:t,change:sum(t)-total};
+}
+function countUp(total,change){
+  const b=greedy(change,DENOMS),out=[];let run=total;
+  for(const d of [...DENOMS].reverse())for(let i=0;i<(b[d]||0);i++){out.push(fm(run)+' + '+lbl(d)+' = '+fm(run+d));run+=d}
+  return out;
+}
+
+const $=id=>document.getElementById(id);
+const LDESC=['Small totals, simple round-ups.','Bigger totals and more variety.','Big notes, plus customers who add coins to round the change.'];
+let TIME=25;
+let level=1,idx=0,correct=0,timeSum=0,tx,given,hist,left,timer=null,active=false,timed=true,counting=true,recvOk=true,countMiss=0;
+
+document.querySelectorAll('#levels button').forEach(b=>b.onclick=()=>{
+  level=+b.dataset.l;
+  document.querySelectorAll('#levels button').forEach(x=>x.classList.toggle('on',x===b));
+  $('ldesc').textContent=LDESC[level];
+});
+$('ldesc').textContent=LDESC[level];
+
+function pad(el,list){
+  list.forEach(d=>{
+    const b=document.createElement('button');
+    b.textContent=lbl(d);
+    b.className=d>=1000?'n'+d/100:(d>=100?'cg':'cs');
+    b.setAttribute('aria-label','Add '+lbl(d));
+    b.onclick=()=>{if(!active)return;given[d]=(given[d]||0)+1;hist.push(d);draw()};
+    el.appendChild(b);
+  });
+}
+pad($('notes'),NOTES);pad($('coins'),COINS);
+
+function show(id){['start','play','end'].forEach(s=>$(s).hidden=s!==id)}
+function draw(){
+  $('count').textContent='Customer '+idx+' of 10';
+  $('score').textContent='Correct: '+correct;
+  $('total').textContent=fm(tx.total);
+  const hide=counting&&!recvOk;
+  $('paid').textContent=hide?'R ?':fm(sum(tx.tendered));
+  $('paidd').textContent=hide?'count the cash below':desc(tx.tendered);
+  $('given').textContent=fm(sum(given));
+  $('givend').textContent=desc(given);
+}
+function setControls(on){
+  document.querySelectorAll('.pad button,#undo,#clear,#submit').forEach(b=>b.disabled=!on);
+}
+function startShift(){
+  idx=0;correct=0;timeSum=0;timed=$('timed').checked;counting=$('count').checked;countMiss=0;TIME=counting?40:25;
+  show('play');next();
+}
+function next(){
+  if(idx>=10){return finish()}
+  idx++;tx=transaction(level);given={};hist=[];left=TIME;
+  $('fb').hidden=true;$('next').hidden=true;$('barwrap').style.visibility=timed?'visible':'hidden';
+  $('bar').style.width='100%';
+  setControls(true);active=true;recvOk=!counting;
+  renderHand();$('handcard').hidden=false;$('recv').hidden=!counting;$('recvfb').textContent='';
+  $('amt').value='';$('amt').disabled=false;$('chk').disabled=false;
+  if(counting){setControls(false);$('amt').focus()}
+  draw();
+  clearInterval(timer);
+  if(timed)timer=setInterval(()=>{
+    left-=.1;$('bar').style.width=Math.max(left/TIME*100,0)+'%';
+    if(left<=0)submit(true);
+  },100);
+}
+function submit(timedOut){
+  if(!active)return;
+  active=false;clearInterval(timer);setControls(false);
+  $('amt').disabled=true;$('chk').disabled=true;recvOk=true;
+  timeSum+=TIME-Math.max(left,0);
+  const diff=sum(given)-tx.change,ok=diff===0&&!timedOut;
+  let t;
+  if(ok){correct++;t='<span class="ok">Correct.</span> '+fm(tx.change)+' change.'}
+  else{
+    const why=timedOut?'Too slow, the customer left.':diff<0?'Short by '+fm(-diff)+'.':'Gave '+fm(diff)+' too much.';
+    t='<span class="no">'+why+'</span>\nChange owed: '+fm(tx.change)+'. Count it up:\n'+countUp(tx.total,tx.change).join('\n');
+  }
+  $('fb').innerHTML=t;$('fb').hidden=false;
+  $('next').textContent=idx>=10?'See results':'Next customer';$('next').hidden=false;
+  draw();
+}
+function finish(){
+  show('end');
+  $('sum').textContent='Correct: '+correct+' of 10 ('+correct*10+'%)\nAverage time: '+(timeSum/10).toFixed(1)+' seconds'+(timed?'':' (untimed)')+(counting?'\nCash miscounts: '+countMiss:'');
+}
+$('go').onclick=startShift;$('again').onclick=()=>show('start');
+function renderHand(){
+  const h=$('hand'),items=[];h.innerHTML='';
+  DENOMS.forEach(d=>{for(let i=0;i<(tx.tendered[d]||0);i++)items.push(d)});
+  items.sort(()=>Math.random()-.5).forEach(d=>{
+    const s=document.createElement('span');s.textContent=lbl(d);
+    s.className='chip '+(d>=1000?'nn n'+d/100:(d>=100?'cg':'cs'));h.appendChild(s);
+  });
+}
+function checkRecv(){
+  if(!active||recvOk)return;
+  const v=Math.round(parseFloat($('amt').value.replace(',','.').replace(/^R/i,''))*100);
+  if(v===sum(tx.tendered)){
+    recvOk=true;$('amt').disabled=true;$('chk').disabled=true;setControls(true);
+    $('recvfb').innerHTML='<span class="ok">Right, '+fm(v)+'.</span> Now work out the change.';draw();
+  }else{countMiss++;$('recvfb').innerHTML='<span class="no">Not quite. Count it again.</span>'}
+}
+$('chk').onclick=checkRecv;
+$('amt').addEventListener('keydown',e=>{if(e.key==='Enter')checkRecv()});
+$('restart').onclick=startShift;
+$('menu').onclick=()=>{active=false;clearInterval(timer);show('start')};
+$('submit').onclick=()=>submit(false);$('next').onclick=next;
+$('undo').onclick=()=>{if(!active||!hist.length)return;const d=hist.pop();if(--given[d]<=0)delete given[d];draw()};
+$('clear').onclick=()=>{if(!active)return;given={};hist=[];draw()};
+</script>
+</body>
+</html>
