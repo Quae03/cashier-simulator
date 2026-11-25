@@ -56,6 +56,7 @@ input[type="text"],#amt{font:inherit;flex:1;min-width:0;padding:10px;border:1px 
 <p id="ldesc" style="margin-top:10px"></p>
 <label><input type="checkbox" id="timed" checked> Timer per customer (25 seconds, or 40 when counting the cash)</label><br>
 <label><input type="checkbox" id="count" checked> Count the cash yourself (the amount handed over is hidden)</label><br>
+<label><input type="checkbox" id="hide"> Hide the amount paid (keep it in your head)</label><br>
 <button class="primary" id="go">Start shift</button>
 </section>
 
@@ -126,7 +127,7 @@ function countUp(total,change){
 const $=id=>document.getElementById(id);
 const LDESC=['Small totals, simple round-ups.','Bigger totals and more variety.','Big notes, plus customers who add coins to round the change.'];
 let TIME=25;
-let level=1,idx=0,correct=0,timeSum=0,tx,given,hist,left,timer=null,active=false,timed=true,counting=true,recvOk=true,countMiss=0;
+let level=1,idx=0,correct=0,timeSum=0,tx,given,hist,left,timer=null,active=false,timed=true,counting=true,recvOk=true,countMiss=0,hideAmt=false,masked=false,glance=null;
 
 document.querySelectorAll('#levels button').forEach(b=>b.onclick=()=>{
   level=+b.dataset.l;
@@ -152,9 +153,10 @@ function draw(){
   $('count').textContent='Customer '+idx+' of 10';
   $('score').textContent='Correct: '+correct;
   $('total').textContent=fm(tx.total);
-  const hide=counting&&!recvOk;
+  const hide=masked;
   $('paid').textContent=hide?'R ?':fm(sum(tx.tendered));
-  $('paidd').textContent=hide?'count the cash below':desc(tx.tendered);
+  $('paidd').textContent=hide?(counting&&!recvOk?'count the cash below':'keep it in your head'):desc(tx.tendered);
+  $('hand').style.visibility=(masked&&!counting)?'hidden':'visible';
   $('given').textContent=fm(sum(given));
   $('givend').textContent=desc(given);
 }
@@ -162,7 +164,7 @@ function setControls(on){
   document.querySelectorAll('.pad button,#undo,#clear,#submit').forEach(b=>b.disabled=!on);
 }
 function startShift(){
-  idx=0;correct=0;timeSum=0;timed=$('timed').checked;counting=$('count').checked;countMiss=0;TIME=counting?40:25;
+  idx=0;correct=0;timeSum=0;timed=$('timed').checked;counting=$('count').checked;hideAmt=$('hide').checked;countMiss=0;TIME=counting?40:25;
   show('play');next();
 }
 function next(){
@@ -170,7 +172,8 @@ function next(){
   idx++;tx=transaction(level);given={};hist=[];left=TIME;
   $('fb').hidden=true;$('next').hidden=true;$('barwrap').style.visibility=timed?'visible':'hidden';
   $('bar').style.width='100%';
-  setControls(true);active=true;recvOk=!counting;
+  setControls(true);active=true;recvOk=!counting;masked=counting;clearTimeout(glance);
+  if(hideAmt&&!counting)glance=setTimeout(()=>{if(active){masked=true;draw()}},3000);
   renderHand();$('handcard').hidden=false;$('recv').hidden=!counting;$('recvfb').textContent='';
   $('amt').value='';$('amt').disabled=false;$('chk').disabled=false;
   if(counting){setControls(false);$('amt').focus()}
@@ -184,7 +187,7 @@ function next(){
 function submit(timedOut){
   if(!active)return;
   active=false;clearInterval(timer);setControls(false);
-  $('amt').disabled=true;$('chk').disabled=true;recvOk=true;
+  $('amt').disabled=true;$('chk').disabled=true;recvOk=true;masked=false;clearTimeout(glance);
   timeSum+=TIME-Math.max(left,0);
   const diff=sum(given)-tx.change,ok=diff===0&&!timedOut;
   let t;
@@ -214,7 +217,7 @@ function checkRecv(){
   if(!active||recvOk)return;
   const v=Math.round(parseFloat($('amt').value.replace(',','.').replace(/^R/i,''))*100);
   if(v===sum(tx.tendered)){
-    recvOk=true;$('amt').disabled=true;$('chk').disabled=true;setControls(true);
+    recvOk=true;masked=hideAmt;$('amt').disabled=true;$('chk').disabled=true;setControls(true);
     $('recvfb').innerHTML='<span class="ok">Right, '+fm(v)+'.</span> Now work out the change.';draw();
   }else{countMiss++;$('recvfb').innerHTML='<span class="no">Not quite. Count it again.</span>'}
 }
